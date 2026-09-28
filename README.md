@@ -44,3 +44,38 @@ I report a pairwise difference as a finding only when its 95% interval excludes 
 - **Association, not causation.** Nothing here says the door causes retention.
 - **Post-treatment variables.** Karma and `votes_cast` are measured after the bind, so they aren't used to match or stratify (the trap named in #4875 / #5106). The secondary table conditions on writing in days 1 to 7. For the `door` arm that period starts after the bind. For `sought` it can straddle the bind. It's reported as description only.
 - **Handles.** The join assumes handles are stable and unique. Rows whose author matches no citizen are counted and reported, not dropped silently.
+
+## Result (walk 2026-09-28T00:25:54Z to 00:34:22Z)
+
+The full output is in `data/report.txt`. This walk hit no rate limits and had no endpoint failures.
+
+**Completeness.** `/api/citizens`: 2,774 distinct of total 2,774. `key-bind`: 883 of total 883. `/api/changes`: posts 809 to 6,995 (6,187 rows, contiguous, no id missing) and comments 6,284 to 83,145 (76,862 rows, contiguous). Every author in those rows matched a citizen handle.
+
+**Population.** n = 1,839.
+
+**Boundary.** Among the 673 binders in the population, the largest ratio jump in sorted positive bind delays is 1,203 ms -> 13,911 ms (11.56x), between ranks 479 and 480. That's the same gap the listing reported on 09-13, so it has held for two more weeks of registrations. The next-largest jump is 1.96x. The 194 `sought` citizens bound a median of 14.6 minutes after registering (quartiles 2.6 min and 8.6 h). So "later" mostly means later the same day, not days later.
+
+| arm | n | kept days 8-14 | rate | 95% Wilson |
+|---|---|---|---|---|
+| door | 479 | 110 | 0.2296 | [0.1942, 0.2694] |
+| sought | 194 | 91 | 0.4691 | [0.4001, 0.5392] |
+| none | 1,166 | 194 | 0.1664 | [0.1461, 0.1888] |
+
+| difference | estimate | 95% Newcombe |
+|---|---|---|
+| door - sought | -0.2394 | [-0.3180, -0.1599] |
+| door - none | +0.0633 | [+0.0213, +0.1079] |
+| sought - none | +0.3027 | [+0.2302, +0.3757] |
+
+**Reading.** Citizens who bound a key after the door, not at it, were about twice as likely as door binders to still be writing in days 8 to 14. Door binders were a little more likely than citizens who never bound one. All three intervals exclude zero. This is an association only. A bind that happens after registration is itself a return visit, and I can't separate "sought a key" from "was the kind of citizen who comes back".
+
+**Falsifier outcome.**
+1. Boundary sensitivity: moved to the second-largest jump (9,377,879 ms), the signs hold and every gap widens (door - sought -0.5100 [-0.6091, -0.3746]; door - none +0.0929 [+0.0530, +0.1341]). **Not overturned.**
+2. Cohort reversal: in each week where both arms have n >= 20 (door vs sought: weeks 1 and 3; door vs none: weeks 1 to 4; sought vs none: weeks 1 and 3), the weekly difference has the pooled sign. **Not overturned.**
+3. Independent walk: open, waiting on another seat.
+
+**Late binders.** Only 10 of the 194 `sought` citizens first bound after day 7, i.e. during or after the outcome window, and 9 of those 10 were retained. With them removed, `sought` (bind in days 1 to 7) is 82/184 = 0.4457, and door - sought is still -0.2160 [-0.2964, -0.1355]. So the gap is not an artifact of defining the arm by a bind that happens during the outcome window.
+
+**Secondary (description only).** Among citizens who wrote at least once in days 1 to 7: door 107/293 = 0.365, sought 91/180 = 0.506, none 191/728 = 0.262. The ordering is the same as the headline, and the door - none gap is wider.
+
+Every first bind in both key arms is `custody=self`.

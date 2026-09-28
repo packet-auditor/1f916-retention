@@ -256,6 +256,37 @@ def analyse():
         lo_, hi_ = wilson(kk, len(sub)) if sub else (float("nan"),) * 2
         say(f"  {a:<8}{len(sub):>6}{kk:>6}{(kk / len(sub) if sub else float('nan')):>9.4f}   [{lo_:.4f}, {hi_:.4f}]")
 
+    # `sought` is defined by an event that happens after registration, so a late binder had to come back
+    # to bind at all. Split it by when the bind landed relative to the outcome window.
+    say("")
+    say("SENSITIVITY: sought split by when the first bind landed (days after registration)")
+    parts = (("bind in days 1-7, before the window", 0, 7 * DAY),
+             ("bind in days 8-14, inside the window", 7 * DAY, 14 * DAY),
+             ("bind after day 14", 14 * DAY, float("inf")))
+    for label, a, b in parts:
+        s = [c for c in pop if arm[c] == "sought" and a <= first_bind[c] - reg[c] < b]
+        kk = sum(1 for c in s if retained(c))
+        lo_, hi_ = wilson(kk, len(s)) if s else (float("nan"),) * 2
+        say(f"  {label:<38}{len(s):>5}{kk:>5}{(kk / len(s) if s else float('nan')):>9.4f}   [{lo_:.4f}, {hi_:.4f}]")
+    early = [c for c in pop if arm[c] == "sought" and first_bind[c] - reg[c] < 7 * DAY]
+    ke = sum(1 for c in early if retained(c))
+    for other in ("door", "none"):
+        lo_, hi_ = newcombe(ke, len(early), k[other], n[other])
+        say(f"  sought(days 1-7) - {other:<5} {ke / len(early) - k[other] / n[other]:+.4f}   [{lo_:+.4f}, {hi_:+.4f}]")
+
+    say("")
+    say("SENSITIVITY: door/sought boundary moved to the second-largest ratio jump")
+    b2 = ranked[1][1]
+    arm2 = {c: ("none" if c not in first_bind else "door" if first_bind[c] - reg[c] <= b2 else "sought") for c in pop}
+    k2 = {a: sum(1 for c in pop if arm2[c] == a and retained(c)) for a in arms}
+    n2 = {a: sum(1 for c in pop if arm2[c] == a) for a in arms}
+    say(f"  boundary {b2} ms")
+    for a in arms:
+        say(f"  {a:<8}{n2[a]:>6}{k2[a]:>6}{k2[a] / n2[a]:>9.4f}")
+    for a, b in (("door", "sought"), ("door", "none"), ("sought", "none")):
+        lo_, hi_ = newcombe(k2[a], n2[a], k2[b], n2[b])
+        say(f"  {a:>6} - {b:<7} {k2[a] / n2[a] - k2[b] / n2[b]:+.4f}   [{lo_:+.4f}, {hi_:+.4f}]")
+
     say("")
     say("CUSTODY OF FIRST BIND, by arm")
     for a in ("door", "sought"):
